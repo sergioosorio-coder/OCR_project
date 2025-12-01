@@ -1,0 +1,51 @@
+school_notebooks:
+  repo_id: "ai-forever/school_notebooks_EN"
+
+  files:
+    train_annotations: "annotations_train.json"
+    val_annotations: "annotations_val.json"
+    test_annotations: "annotations_test.json"
+    images_zip: "images.zip"
+
+  output_dir: "data/01_raw"
+
+data_preparation:
+  images_base_dir: "data/01_raw/images.zip"
+  max_samples: None 
+
+model_training:
+  pretrained_model_name: "microsoft/trocr-base-handwritten"
+  max_target_length: 128
+  output_dir: "data/06_models/trocr-line"
+
+  training_args:
+    output_dir: "data/06_models/trocr-line-hf"
+    overwrite_output_dir: true
+
+    do_train: true
+    do_eval: true
+
+    predict_with_generate: false
+
+    per_device_train_batch_size: 4
+    per_device_eval_batch_size: 4
+    num_train_epochs: 2
+
+    eval_strategy: "steps"
+    logging_strategy: "steps"
+    logging_steps: 50
+    save_steps: 500
+    eval_steps: 500
+    warmup_steps: 100
+    
+    gradient_accumulation_steps: 1
+    gradient_checkpointing: false
+
+    fp16: false
+    optim: "adamw_torch"
+
+    load_best_model_at_end: true
+    metric_for_best_model: "eval_cer"
+    greater_is_better: false
+    report_to: "none"
+    remove_unused_columns: false

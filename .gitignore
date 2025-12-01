@@ -1,0 +1,107 @@
+########################################
+# PYTHON
+########################################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.swp
+*.swo
+*.cache/
+*.mypy_cache/
+*.pytest_cache/
+*.ruff_cache/
+*.coverage
+coverage.xml
+
+########################################
+# ENVIRONMENTS
+########################################
+.env
+.env.*
+.venv/
+venv/
+ocr_venv/
+*.virtualenv
+pip-wheel-metadata/
+poetry.lock
+Pipfile.lock
+
+########################################
+# NOTEBOOKS
+########################################
+.ipynb_checkpoints/
+*.nbconvert/
+*.ipynb.save
+
+########################################
+# DATA & DATASETS
+########################################
+data/
+datasets/
+input/
+inputs/
+raw/
+processed/
+*.csv
+*.tsv
+*.jsonl
+*.parquet
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.npz
+*.npy
+
+# Si quieres incluir archivos pequeños tipo JSON, puedes remover las líneas de arriba.
+
+########################################
+# MODELS & TRANSFORMERS
+########################################
+models/
+checkpoints/
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.onnx
+
+
+# HuggingFace cache local (muy pesado)
+huggingface/
+.cache/huggingface/
+~/.cache/huggingface/
+
+########################################
+# LOGS
+########################################
+logs/
+*.log
+wandb/
+mlruns/
+
+########################################
+# DOCKER / BUILD
+########################################
+docker/
+*.dockerfile
+*.tar
+*.img
+*.pid
+
+########################################
+# OS / EDITORS
+########################################
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
