@@ -66,9 +66,11 @@ def load_trocr_model_and_processor(
     processor = TrOCRProcessor.from_pretrained(pretrained_model_name)
     model = VisionEncoderDecoderModel.from_pretrained(pretrained_model_name).to(device)
 
-    model.config.decoder_start_token_id = processor.tokenizer.cls_token_id
+    model.config.decoder_start_token_id = processor.tokenizer.bos_token_id
     model.config.pad_token_id = processor.tokenizer.pad_token_id
+    model.config.eos_token_id = processor.tokenizer.eos_token_id
     model.config.vocab_size = model.config.decoder.vocab_size
+    
     ### mantenemos gradientes del encoder
     for param in model.encoder.parameters():
         param.requires_grad = False
@@ -84,6 +86,7 @@ def build_trocr_datasets(
     processor: TrOCRProcessor,
     max_target_length: int,
 ) -> Dict[str, Any]:
+    
     train_ds = NotebooksDataset(train_samples, processor, max_target_length)
     val_ds = NotebooksDataset(val_samples, processor, max_target_length)
     return {"train_dataset": train_ds, "val_dataset": val_ds}
@@ -95,7 +98,7 @@ def train_trocr_model(
     val_dataset: Dataset,
     training_args_dict: Dict[str, Any],
 ) -> Dict[str, Any]:
-    
+
     cer_metric = evaluate.load('cer')
     def compute_metrics(pred):
         labels_ids = pred.label_ids

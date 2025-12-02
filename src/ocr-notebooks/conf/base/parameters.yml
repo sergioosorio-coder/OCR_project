@@ -28,20 +28,20 @@ model_training:
 
     auto_find_batch_size: true
     num_train_epochs: 3
+    learning_rate: 1e-5
+    warmup_ratio: 0.1 
 
-    save_strategy: "steps"
-    eval_strategy: "steps"
+    save_strategy: "epoch"
+    eval_strategy: "epoch"
     logging_strategy: "steps"
-
     logging_steps: 50
-    save_steps: 1000
-    eval_steps: 1000
-    warmup_steps: 100
     
     fp16: false
-    optim: "adafactor"
+    optim: "adamw_torch"
+    weight_decay: 0.01
 
     load_best_model_at_end: true
     metric_for_best_model: "eval_cer"
     greater_is_better: false
+    save_total_limit: 2
     report_to: "none"
