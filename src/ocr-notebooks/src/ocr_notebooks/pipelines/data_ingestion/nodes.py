@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Dict, Any, List
 from io import BytesIO
 from zipfile import ZipFile
+
+import re
 import cv2 
 import numpy as np 
 
@@ -173,7 +175,7 @@ def extract_samples(
             crop = pil_img.crop((x1, y1, x2, y2))
             
             line_samples.append({"image": crop, 
-                                 "text": line_text})
+                                 "text": re.sub(' +', ' ', line_text.strip()) })
             
             if isinstance(max_samples,int) and len(line_samples) >= int(max_samples) :
                 break
