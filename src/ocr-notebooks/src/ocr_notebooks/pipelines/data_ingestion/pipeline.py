@@ -24,7 +24,9 @@ def create_pipeline(**kwargs) -> Pipeline:
             inputs=[
                 "annotations_train_raw", 
                 "params:data_preparation.images_base_dir",
-                "params:data_preparation.max_samples",
+                "params:data_preparation.n_pages",
+                "params:data_preparation.model_dir",
+                "params:data_preparation.cer_threshold",
                 ],
             outputs="train_line_samples",
             name="coco_to_line_samples_train",
@@ -34,7 +36,9 @@ def create_pipeline(**kwargs) -> Pipeline:
             inputs=[
                 "annotations_val_raw", 
                 "params:data_preparation.images_base_dir",
-                "params:data_preparation.max_samples",
+                "params:data_preparation.n_pages",
+                "params:data_preparation.model_dir",
+                "params:data_preparation.cer_threshold",                
                 ],
             outputs="val_line_samples",
             name="coco_to_line_samples_val",
@@ -44,7 +48,9 @@ def create_pipeline(**kwargs) -> Pipeline:
             inputs=[
                 "annotations_test_raw", 
                 "params:data_preparation.images_base_dir",
-                "params:data_preparation.max_samples",
+                "params:data_preparation.n_pages",
+                "params:data_preparation.model_dir",
+                "params:data_preparation.cer_threshold",                
                 ],
             outputs="test_line_samples",
             name="coco_to_line_samples_test",

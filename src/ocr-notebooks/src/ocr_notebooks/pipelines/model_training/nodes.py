@@ -72,8 +72,8 @@ def load_trocr_model_and_processor(
     model.config.vocab_size = model.config.decoder.vocab_size
     
     ### mantenemos gradientes del encoder
-    for param in model.encoder.parameters():
-        param.requires_grad = False
+    #for param in model.encoder.parameters():
+    #   param.requires_grad = False
 
     return {
         "processor": processor,

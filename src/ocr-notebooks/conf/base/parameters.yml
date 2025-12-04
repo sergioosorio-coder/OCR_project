@@ -11,11 +11,13 @@ school_notebooks:
 
 data_preparation:
   images_base_dir: "data/01_raw/images.zip"
-  max_samples: "none" 
+  n_pages: 100
+  model_dir: "microsoft/trocr-base-handwritten"
+  cer_threshold: 0.25
 
 model_training:
   pretrained_model_name: "microsoft/trocr-base-handwritten"
-  max_target_length: 128
+  max_target_length: 256
   output_dir: "data/06_models/trocr-line"
 
   training_args:
@@ -26,8 +28,9 @@ model_training:
     do_eval: true
     predict_with_generate: true
 
-    auto_find_batch_size: true
-    num_train_epochs: 3
+    per_device_train_batch_size: 4
+    per_device_eval_batch_size: 4
+    num_train_epochs: 20
     learning_rate: 1e-5
     warmup_ratio: 0.1 
 

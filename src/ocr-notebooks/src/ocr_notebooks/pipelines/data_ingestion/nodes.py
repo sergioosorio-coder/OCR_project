@@ -17,6 +17,7 @@ import numpy as np
 
 from PIL import Image
 import unicodedata
+from ocr_notebooks.utils.dataset_cleaner import clean_lines_samples
 
 def download_files_from_hf(repo_id: str, files: dict, output_dir: str) -> dict:
 
@@ -71,61 +72,96 @@ def _get_text_from_ann(ann):
         return trans.get("en") or (list(trans.values())[0] if trans else "")
     return trans or ""
 
-def _group_words_into_lines(word_boxes, y_tol_factor=0.6):
-    for wb in word_boxes:
-            x1, y1, x2, y2 = wb["bbox"]
-            wb["y_center"] = (y1 + y2) / 2.0
-            wb["height"] = (y2 - y1)
-    word_boxes_sorted = sorted(word_boxes, key=lambda x: (x["y_center"]))
+def cy(word):
+    x1, y1, x2, y2 = word["bbox"]
+    return 0.5 * (y1 + y2)
 
-    lines = []
-    current_line = []
+def h(word):
+    x1, y1, x2, y2 = word["bbox"]
+    return (y2 - y1)
 
-    for wb in word_boxes_sorted:
-        if not current_line:
-            current_line.append(wb)
-            continue
+def group_words_into_lines(
+    words: list,
+    max_center_diff_factor: float = 0.7,
+)-> List[dict]:
 
-        ref = current_line[0]
-        ref_center = ref["y_center"]
-        ref_height = ref["height"]
-        y_tol = ref_height * y_tol_factor
+    if not words:
+        return []
 
-        if abs(wb["y_center"] - ref_center) <= y_tol:
-            current_line.append(wb)
-        else:
-            lines.append(current_line)
-            current_line = [wb]
+    # Ordenamos primero por cy y luego por x para tener algo estable
+    words = sorted(words, key=lambda w: (cy(w), w["bbox"][0]))
 
-    if current_line:
-        lines.append(current_line)
-    return lines
+    lines: List[dict] = []
 
-def merge_line_words(line_words):
-    line_words = sorted(line_words, key=lambda w: w["bbox"][0])
+    for w in words:
+        placed = False
+        w_cy = cy(w)
+        w_h  = h(w)
+        for line in lines:
+            cy_mean = line["cy_mean"]
+            h_mean  = line["h_mean"]
+            if abs(w_cy - cy_mean) <= max_center_diff_factor * h_mean:
+                line["words"].append(w)
 
-    texts = [w["text"] for w in line_words]
+                n = len(line["words"])
+                line["cy_mean"] = (cy_mean * (n - 1) + w_cy) / n
+                line["h_mean"]  = (h_mean * (n - 1) + w_h)  / n
+                placed = True
+                break
+        if not placed:
+            
+            lines.append({
+                "words": [w],
+                "cy_mean": w_cy,
+                "h_mean":  w_h,
+            })
+    output_lines = []
+    for line in lines:
+        sorted_line = sorted(line["words"], key=lambda w: w["bbox"][0])
+        output_lines.append(sorted_line)
+
+    return output_lines
+
+
+def merge_line_words(
+    line_words: list,
+    v_pad: int = 4,
+    expand_factor: float = 1.2,
+):
+    """
+    Construye la caja (x_min, y_min, x_max, y_max) de una línea,
+    robusto frente a palabras con bboxes “contaminados” verticalmente.
+    """
+
+    if not line_words:
+        raise ValueError("line_words no puede ser vacío")
 
     xs1 = [w["bbox"][0] for w in line_words]
-    ys1 = [w["bbox"][1] for w in line_words]
     xs2 = [w["bbox"][2] for w in line_words]
-    ys2 = [w["bbox"][3] for w in line_words]
 
-    x1 = min(xs1)
-    y1 = min(ys1)
-    x2 = max(xs2)
-    y2 = max(ys2)
+    x_min = min(xs1)
+    x_max = max(xs2)
 
-    line_text = " ".join(texts)
+    cys = np.array([cy(w) for w in line_words], dtype=float)
+    hs  = np.array([h(w)  for w in line_words], dtype=float)
 
-    return (x1, y1, x2, y2), line_text
+    cy_line = float(np.mean(cys))
+    h_med   = float(np.median(hs))  
 
+    half_height = 0.5 * h_med * expand_factor
+
+    y_min = int(cy_line - half_height) - v_pad
+    y_max = int(cy_line + half_height) + v_pad
+
+    return x_min, max(0, y_min), x_max, y_max
 
 
 def extract_samples(
         coco_json_file:Dict[str, Any],
-        images_zip_data,
-        max_samples: int | None = 1000,
+        images_zip_data: str|Path|bytes,
+        n_pages: int = 20,
+        model_dir: str = "microsoft/trocr-base-handwritten",
+        cer_threshold: float = 0.25,
                     ):
     categories_dict = {cat['id']:cat['name'] for cat in coco_json_file['categories']}
     image_name_dict = {image['id']:{'file_name':image['file_name'],
@@ -147,7 +183,7 @@ def extract_samples(
         name_map[basename] = member
 
     line_samples= []
-    for img_id in image_name_dict:
+    for img_id in range(min(n_pages,len(image_name_dict))):
         images_name = image_name_dict[img_id]['file_name']
         zip_member = name_map.get(images_name,'Empty')
         with zf.open(zip_member) as f:
@@ -166,17 +202,21 @@ def extract_samples(
                 'text': text.strip()
             })
 
-        lines = _group_words_into_lines(word_boxes,y_tol_factor=0.9)
-        print( f"Imagen {images_name}: {len(word_boxes)} palabras agrupadas en {len(lines)} líneas." )
-        
-        for line_words in lines:
-            line_bbox, line_text = merge_line_words(line_words)
-            x1, y1, x2, y2 = line_bbox
+        lines = group_words_into_lines(word_boxes,max_center_diff_factor=0.7)
+        word_by_line = [[w['text'].strip() for w in line] for line in lines]
+        bboxes = [merge_line_words(line) for line in lines]
+
+        print( f"Imagen {images_name}: {len(word_boxes)} palabras agrupadas en {len(lines)} líneas."  )
+        for bbox, words in zip(bboxes, word_by_line):
+            transcript = re.sub(' +', ' ',' '.join(words) )
+            if len(words) < 3 or len(words) > 15:
+                continue
+            x1, y1, x2, y2 = bbox
             crop = pil_img.crop((x1, y1, x2, y2))
-            
             line_samples.append({"image": crop, 
-                                 "text": re.sub(' +', ' ', line_text.strip()) })
+                                "text": transcript })
             
-            if isinstance(max_samples,int) and len(line_samples) >= int(max_samples) :
-                break
-    return line_samples
+    clean_samples, bad, stats = clean_lines_samples(line_samples,model_dir,cer_threshold=0.25)
+    print(f"Líneas después de limpieza: {len(clean_samples)} (descartadas: {len(bad)})")
+    print(f"Estadísticas de limpieza: {stats}")
+    return clean_samples
