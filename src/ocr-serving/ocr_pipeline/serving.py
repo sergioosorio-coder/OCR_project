@@ -61,8 +61,7 @@ class OcrPipeline:
             return {"lines": [], "full_text": ""}
 
         crops = self._crops_from_boxes(page_image, boxes)
-        crops_preprocessed = [preprocess_line_bgr(np.array(crop)) for crop in crops]
-        texts = self._predict_lines(crops_preprocessed)
+        texts = self._predict_lines(crops)
         full_text = "\n".join(texts)
 
         return {
@@ -70,33 +69,3 @@ class OcrPipeline:
             "full_text": full_text,
         }
     
-def preprocess_line_bgr(line_bgr: np.ndarray, target_height: int = 384) -> Image.Image:
-    """
-    Preprocesa el recorte de una línea:
-    - pasa de BGR (cv2) a RGB
-    - normaliza tamaño manteniendo aspect ratio (altura target_height)
-    - mejora un poco el contraste si la imagen está muy "lavada"
-    - devuelve un PIL.Image listo para el TrOCRProcessor
-    """
-    # 1) BGR -> RGB
-    line_rgb = cv2.cvtColor(line_bgr, cv2.COLOR_BGR2RGB)
-
-    # 2) Resize manteniendo aspect ratio
-    h, w, _ = line_rgb.shape
-    scale = target_height / float(h)
-    new_w = int(w * scale)
-    line_resized = cv2.resize(line_rgb, (new_w, target_height), interpolation=cv2.INTER_LINEAR)
-
-    # 3) Pequeño ajuste de contraste usando CLAHE sobre luma
-    #    (opcional, pero suele ayudar en cuadernos con mala iluminación)
-    lab = cv2.cvtColor(line_resized, cv2.COLOR_RGB2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    cl = clahe.apply(l)
-    limg = cv2.merge((cl, a, b))
-    line_enhanced = cv2.cvtColor(limg, cv2.COLOR_LAB2RGB)
-
-    # 4) Convertir a PIL
-    pil_img = Image.fromarray(line_enhanced)
-
-    return pil_img
