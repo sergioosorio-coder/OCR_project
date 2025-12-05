@@ -55,8 +55,8 @@ class NotebooksDataset(Dataset):
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
 
         return {
-            "pixel_values": pixel_values.squeeze(),
-            "labels": labels.squeeze(),
+            "pixel_values": pixel_values.squeeze(0),
+            "labels": labels.squeeze(0),
         }
 
 def load_trocr_model_and_processor(
@@ -71,9 +71,13 @@ def load_trocr_model_and_processor(
     model.config.eos_token_id = processor.tokenizer.eos_token_id
     model.config.vocab_size = model.config.decoder.vocab_size
     
-    ### mantenemos gradientes del encoder
-    #for param in model.encoder.parameters():
-    #   param.requires_grad = False
+    for p in model.parameters():
+        p.requires_grad = False
+
+    for name, p in model.named_parameters():
+        if "bias" in name:
+            p.requires_grad = True
+
 
     return {
         "processor": processor,
