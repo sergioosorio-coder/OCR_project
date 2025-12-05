@@ -22,7 +22,7 @@ def main():
     img_path = Path("data/IMG_7330.jpg") 
     image = cv2.imread(img_path)
 
-    model_path = "models/trocr-line" # "microsoft/trocr-base-handwritten" 
+    model_path = "models/trocr-line" # "microsoft/trocr-base-handwritten" # 
     pipeline = OcrPipeline(model_path)
     boxes,_,_,_  = detect_lines(image)
     save_crops(image, boxes)
