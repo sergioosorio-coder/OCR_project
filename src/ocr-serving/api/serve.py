@@ -6,7 +6,7 @@ import numpy as np
 
 from ocr_pipeline.serving import OcrPipeline
 
-MODEL_PATH = "models/trocr-line" #"microsoft/trocr-base-handwritten" 
+MODEL_PATH = "microsoft/trocr-base-handwritten" 
 
 app = FastAPI(title="Notebook OCR API")
 

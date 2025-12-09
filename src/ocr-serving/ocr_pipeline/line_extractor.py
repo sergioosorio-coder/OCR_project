@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
 def to_gray_and_blur(img_bgr, ksize=(5, 5)):
     """
@@ -191,6 +192,9 @@ def detect_lines(img_bgr,
         density_thresh=density_thresh
     )   
     if debug:
+        outdir = Path(debug_path)
+        outdir.mkdir(parents=True, exist_ok=True)
+
         print("line_spans:", line_spans)
         print("boxes:", boxes)
         cv2.imwrite(debug_path+"debug_1_gray.png", gray)

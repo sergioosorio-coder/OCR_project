@@ -39,7 +39,7 @@ class OcrPipeline:
             )
         return crops
 
-    def _predict_lines(self, line_images: List[np.ndarray]) -> List[str]:
+    def predict_text(self, line_images: List[np.ndarray]) -> List[str]:
         encoded = self.processor(images=line_images, return_tensors="pt")
         pixel_values = encoded.pixel_values.to(self.device)
 
@@ -61,7 +61,7 @@ class OcrPipeline:
             return {"lines": [], "full_text": ""}
 
         crops = self._crops_from_boxes(page_image, boxes)
-        texts = self._predict_lines(crops)
+        texts = self.predict_text(crops)
         full_text = "\n".join(texts)
 
         return {
